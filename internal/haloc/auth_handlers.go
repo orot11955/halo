@@ -56,7 +56,11 @@ func (s *Server) handleAuthLogout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if info, ok := auth.FromContext(r.Context()); ok {
-		_ = s.auth.Logout(r.Context(), info.Session.Token)
+		if info.Kind == auth.SubjectApp {
+			_ = s.store.RevokeAppToken(r.Context(), info.User.ID, info.AppToken.ID)
+		} else {
+			_ = s.auth.Logout(r.Context(), info.Session.Token)
+		}
 	}
 	auth.ClearSessionCookie(w)
 	w.WriteHeader(http.StatusNoContent)

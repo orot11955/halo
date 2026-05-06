@@ -12,7 +12,7 @@ struct CoreDetailView: View {
             }
             Divider()
             if let session = model.selectedSession {
-                HaloWebView(profile: profile, session: session)
+                NativeDashboardView(profile: profile, session: session)
             } else {
                 NativeLoginView(profile: profile)
             }
@@ -72,4 +72,3 @@ private struct StatusBanner: View {
         }
     }
 }
-

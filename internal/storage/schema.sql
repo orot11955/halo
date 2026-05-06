@@ -160,6 +160,23 @@ CREATE TABLE IF NOT EXISTS mobile_devices (
 
 CREATE INDEX IF NOT EXISTS idx_mobile_devices_user ON mobile_devices(user_id);
 
+CREATE TABLE IF NOT EXISTS app_tokens (
+  id TEXT PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES auth_users(id) ON DELETE CASCADE,
+  device_id TEXT NOT NULL REFERENCES mobile_devices(id) ON DELETE CASCADE,
+  token_hash TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL DEFAULT '',
+  scopes_json TEXT NOT NULL DEFAULT '[]',
+  created_at TEXT NOT NULL,
+  last_used_at TEXT,
+  expires_at TEXT,
+  revoked_at TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_app_tokens_user ON app_tokens(user_id);
+CREATE INDEX IF NOT EXISTS idx_app_tokens_device ON app_tokens(device_id);
+CREATE INDEX IF NOT EXISTS idx_app_tokens_hash ON app_tokens(token_hash);
+
 CREATE TABLE IF NOT EXISTS notes (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   scope TEXT NOT NULL,

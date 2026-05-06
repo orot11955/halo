@@ -22,12 +22,13 @@ enum HaloWebSessionBridge {
             .path: "/",
             .name: "halo_session",
             .value: session.token,
-            .expires: session.expiresAt,
         ]
+        if let expiresAt = session.expiresAt {
+            properties[.expires] = expiresAt
+        }
         if baseURL.scheme == "https" {
             properties[.secure] = "TRUE"
         }
         return HTTPCookie(properties: properties)
     }
 }
-

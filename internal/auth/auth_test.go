@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"halo/internal/appauth"
 	"halo/internal/storage"
 )
 
@@ -115,5 +116,64 @@ func TestLogoutInvalidatesSession(t *testing.T) {
 	}
 	if _, err := store.GetAuthSession(ctx, session.Token); !errors.Is(err, storage.ErrNotFound) {
 		t.Fatalf("expected session to be gone, got %v", err)
+	}
+}
+
+func TestMiddlewareAcceptsAppToken(t *testing.T) {
+	store := openStore(t)
+	svc := NewService(store)
+	ctx := context.Background()
+
+	user, err := store.UpsertAuthUser(ctx, "admin", "hash")
+	if err != nil {
+		t.Fatalf("upsert user: %v", err)
+	}
+	if _, err := store.UpsertMobileDevice(ctx, storage.UpsertMobileDeviceParams{
+		ID:         "dev-1",
+		UserID:     user.ID,
+		DeviceName: "iPhone",
+		Platform:   "ios",
+		Enabled:    true,
+	}); err != nil {
+		t.Fatalf("upsert device: %v", err)
+	}
+	rawToken, err := appauth.GenerateToken()
+	if err != nil {
+		t.Fatalf("generate token: %v", err)
+	}
+	if _, err := store.CreateAppToken(ctx, storage.CreateAppTokenParams{
+		ID:        "tok-1",
+		UserID:    user.ID,
+		DeviceID:  "dev-1",
+		TokenHash: appauth.HashToken(rawToken),
+	}); err != nil {
+		t.Fatalf("create app token: %v", err)
+	}
+
+	protected := svc.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		info, ok := FromContext(r.Context())
+		if !ok {
+			t.Fatal("expected auth info")
+		}
+		if info.Kind != SubjectApp || info.AppToken.ID != "tok-1" || info.User.Username != "admin" {
+			t.Fatalf("unexpected auth info: %+v", info)
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}))
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/", nil)
+	req.Header.Set("Authorization", "Bearer "+rawToken)
+	protected.ServeHTTP(rec, req)
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("expected 204, got %d body=%s", rec.Code, rec.Body.String())
+	}
+
+	touched, err := store.GetAppTokenByID(ctx, user.ID, "tok-1")
+	if err != nil {
+		t.Fatalf("get app token: %v", err)
+	}
+	if touched.LastUsedAt == nil {
+		t.Fatal("expected last_used_at")
 	}
 }

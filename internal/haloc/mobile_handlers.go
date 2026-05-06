@@ -10,32 +10,39 @@ import (
 	"strings"
 	"time"
 
+	"halo/internal/appauth"
 	"halo/internal/auth"
 	"halo/internal/httputil"
 	"halo/internal/storage"
 )
 
 type mobileDeviceRequest struct {
-	DeviceID    string `json:"device_id,omitempty"`
-	DeviceName  string `json:"device_name"`
-	Platform    string `json:"platform"`
-	BundleID    string `json:"bundle_id"`
-	PushToken   string `json:"push_token,omitempty"`
-	Enabled     *bool  `json:"enabled,omitempty"`
-	MinSeverity string `json:"min_severity,omitempty"`
+	DeviceID      string   `json:"device_id,omitempty"`
+	DeviceName    string   `json:"device_name"`
+	Platform      string   `json:"platform"`
+	BundleID      string   `json:"bundle_id"`
+	PushToken     string   `json:"push_token,omitempty"`
+	Enabled       *bool    `json:"enabled,omitempty"`
+	MinSeverity   string   `json:"min_severity,omitempty"`
+	IssueAppToken bool     `json:"issue_app_token,omitempty"`
+	TokenName     string   `json:"token_name,omitempty"`
+	Scopes        []string `json:"scopes,omitempty"`
 }
 
 type mobileDeviceResponse struct {
-	ID           string `json:"id"`
-	DeviceName   string `json:"device_name"`
-	Platform     string `json:"platform"`
-	BundleID     string `json:"bundle_id"`
-	Enabled      bool   `json:"enabled"`
-	MinSeverity  string `json:"min_severity"`
-	HasPushToken bool   `json:"has_push_token"`
-	CreatedAt    string `json:"created_at"`
-	UpdatedAt    string `json:"updated_at"`
-	LastSeenAt   string `json:"last_seen_at,omitempty"`
+	ID           string   `json:"id"`
+	DeviceName   string   `json:"device_name"`
+	Platform     string   `json:"platform"`
+	BundleID     string   `json:"bundle_id"`
+	Enabled      bool     `json:"enabled"`
+	MinSeverity  string   `json:"min_severity"`
+	HasPushToken bool     `json:"has_push_token"`
+	CreatedAt    string   `json:"created_at"`
+	UpdatedAt    string   `json:"updated_at"`
+	LastSeenAt   string   `json:"last_seen_at,omitempty"`
+	AppToken     string   `json:"app_token,omitempty"`
+	AppTokenID   string   `json:"app_token_id,omitempty"`
+	AppScopes    []string `json:"app_scopes,omitempty"`
 }
 
 func (s *Server) handleMobileDevices(w http.ResponseWriter, r *http.Request) {
@@ -67,11 +74,90 @@ func (s *Server) handleMobileDevices(w http.ResponseWriter, r *http.Request) {
 			writeMobileDeviceError(w, err)
 			return
 		}
-		httputil.WriteJSON(w, http.StatusOK, mobileDeviceFromStorage(device))
+		resp := mobileDeviceFromStorage(device)
+		if req.IssueAppToken {
+			if info.Kind != auth.SubjectSession {
+				httputil.WriteError(w, http.StatusForbidden, "app token issue requires a user session")
+				return
+			}
+			appToken, tokenID, scopes, err := s.issueAppToken(r, info.User.ID, device.ID, req)
+			if err != nil {
+				writeMobileDeviceError(w, err)
+				return
+			}
+			resp.AppToken = appToken
+			resp.AppTokenID = tokenID
+			resp.AppScopes = scopes
+		}
+		httputil.WriteJSON(w, http.StatusOK, resp)
 	default:
 		w.Header().Set("Allow", "GET, POST")
 		httputil.WriteError(w, http.StatusMethodNotAllowed, "method not allowed")
 	}
+}
+
+func (s *Server) issueAppToken(r *http.Request, userID int64, deviceID string, req mobileDeviceRequest) (string, string, []string, error) {
+	token, err := appauth.GenerateToken()
+	if err != nil {
+		return "", "", nil, err
+	}
+	tokenID, err := appauth.GenerateID()
+	if err != nil {
+		return "", "", nil, err
+	}
+	scopes, err := normalizeAppTokenScopes(req.Scopes)
+	if err != nil {
+		return "", "", nil, err
+	}
+	scopesJSON, err := json.Marshal(scopes)
+	if err != nil {
+		return "", "", nil, err
+	}
+	name := strings.TrimSpace(req.TokenName)
+	if name == "" {
+		name = strings.TrimSpace(req.DeviceName)
+	}
+	if name == "" {
+		name = "Halo app"
+	}
+	if _, err := s.store.CreateAppToken(r.Context(), storage.CreateAppTokenParams{
+		ID:         tokenID,
+		UserID:     userID,
+		DeviceID:   deviceID,
+		TokenHash:  appauth.HashToken(token),
+		Name:       name,
+		ScopesJSON: string(scopesJSON),
+	}); err != nil {
+		return "", "", nil, err
+	}
+	return token, tokenID, scopes, nil
+}
+
+func normalizeAppTokenScopes(scopes []string) ([]string, error) {
+	if len(scopes) == 0 {
+		return []string{"core:api", "push:register"}, nil
+	}
+	seen := map[string]bool{}
+	out := []string{}
+	for _, scope := range scopes {
+		scope = strings.TrimSpace(scope)
+		if scope == "" {
+			continue
+		}
+		switch scope {
+		case "core:api", "push:register":
+		default:
+			return nil, errBadMobileDevice("unsupported app token scope: " + scope)
+		}
+		if !seen[scope] {
+			seen[scope] = true
+			out = append(out, scope)
+		}
+	}
+	if len(out) == 0 {
+		return []string{"core:api", "push:register"}, nil
+	}
+	return out, nil
 }
 
 func (s *Server) handleMobileDevicePath(w http.ResponseWriter, r *http.Request) {

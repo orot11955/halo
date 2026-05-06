@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"halo/internal/appauth"
 	"halo/internal/httputil"
 	"halo/internal/storage"
 
@@ -156,9 +157,18 @@ type contextKey string
 
 const sessionContextKey contextKey = "auth.session"
 
+type SubjectKind string
+
+const (
+	SubjectSession SubjectKind = "session"
+	SubjectApp     SubjectKind = "app"
+)
+
 type SessionInfo struct {
-	Session storage.AuthSession
-	User    storage.AuthUser
+	Kind     SubjectKind
+	Session  storage.AuthSession
+	AppToken storage.AppToken
+	User     storage.AuthUser
 }
 
 func FromContext(ctx context.Context) (SessionInfo, bool) {
@@ -178,6 +188,10 @@ func (s *Service) Middleware(next http.Handler) http.Handler {
 		token := tokenFromRequest(r)
 		if token == "" {
 			writeUnauthorized(w, "missing session token")
+			return
+		}
+		if appauth.IsToken(token) {
+			s.authenticateAppToken(w, r, token, next)
 			return
 		}
 		session, err := s.store.GetAuthSession(r.Context(), token)
@@ -205,9 +219,41 @@ func (s *Service) Middleware(next http.Handler) http.Handler {
 		}
 		// Sliding expiration: each authenticated request extends TTL.
 		_ = s.store.TouchAuthSession(r.Context(), token, SessionTTL)
-		ctx := withSession(r.Context(), SessionInfo{Session: session, User: user})
+		ctx := withSession(r.Context(), SessionInfo{Kind: SubjectSession, Session: session, User: user})
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
+
+func (s *Service) authenticateAppToken(w http.ResponseWriter, r *http.Request, token string, next http.Handler) {
+	appToken, err := s.store.GetAppTokenByHash(r.Context(), appauth.HashToken(token))
+	if err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
+			writeUnauthorized(w, "app token not found")
+			return
+		}
+		httputil.WriteInternal(w, "auth.app_token", err)
+		return
+	}
+	if appToken.RevokedAt != nil {
+		writeUnauthorized(w, "app token revoked")
+		return
+	}
+	if appToken.ExpiresAt != nil && time.Now().After(*appToken.ExpiresAt) {
+		writeUnauthorized(w, "app token expired")
+		return
+	}
+	user, err := s.store.GetAuthUserByID(r.Context(), appToken.UserID)
+	if err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
+			writeUnauthorized(w, "user not found")
+			return
+		}
+		httputil.WriteInternal(w, "auth.app_token.user", err)
+		return
+	}
+	_ = s.store.TouchAppToken(r.Context(), appToken.ID)
+	ctx := withSession(r.Context(), SessionInfo{Kind: SubjectApp, AppToken: appToken, User: user})
+	next.ServeHTTP(w, r.WithContext(ctx))
 }
 
 func tokenFromRequest(r *http.Request) string {
