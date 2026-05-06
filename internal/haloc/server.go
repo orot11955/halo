@@ -71,6 +71,7 @@ func (s *Server) Handler() http.Handler {
 	protected.HandleFunc("/api/v1/maintenance/", s.handleMaintenancePath)
 	protected.HandleFunc("/api/v1/mobile/devices", s.handleMobileDevices)
 	protected.HandleFunc("/api/v1/mobile/devices/", s.handleMobileDevicePath)
+	protected.HandleFunc("/api/v1/mobile/pairing-codes", s.handleMobilePairingCodes)
 	protected.HandleFunc("/api/v1/logs/sources", s.handleLogSources)
 	protected.HandleFunc("/api/v1/notes", s.handleNotes)
 	protected.HandleFunc("/api/v1/notes/", s.handleNotePath)
@@ -87,11 +88,12 @@ func (s *Server) Handler() http.Handler {
 	protected.HandleFunc("/api/v1/auth/logout", s.handleAuthLogout)
 	protected.HandleFunc("/api/v1/auth/password", s.handleAuthPassword)
 
-	authedAPI := s.auth.Middleware(s.auditMiddleware(protected))
+	authedAPI := s.auth.Middleware(auth.RequireScope("core:api", s.auditMiddleware(protected)))
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/v1/healthz", s.handleHealth)
 	mux.HandleFunc("/api/v1/auth/login", s.handleAuthLogin)
+	mux.HandleFunc("/api/v1/mobile/pair/complete", s.handleMobilePairComplete)
 	// Anything else under /api/v1/ goes through the auth middleware.
 	mux.Handle("/api/v1/", authedAPI)
 	mux.HandleFunc("/", s.handleWeb)

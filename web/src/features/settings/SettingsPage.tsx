@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { Tabs } from '@/components/ui/Tabs';
 import { Icon } from '@/components/ui/Icon';
 import { TokenIssueModal } from './TokenIssueModal';
+import { AppPairingModal } from './AppPairingModal';
 import { AccountPane } from './AccountPane';
 import { DataTable, type Column } from '@/components/table/DataTable';
 import { NodeStatusBadge } from '@/components/status/NodeStatusBadge';
@@ -117,6 +118,7 @@ function RetentionPane() {
 function TokensPane() {
   const t = useT();
   const [issueOpen, setIssueOpen] = useState(false);
+  const [pairOpen, setPairOpen] = useState(false);
   const query = useNodeList();
 
   const columns: Column<Node>[] = [
@@ -166,14 +168,21 @@ function TokensPane() {
       title={t('settings.tokens.title')}
       subtitle={t('settings.tokens.subtitle')}
       actions={
-        <Button size="sm" variant="primary" onClick={() => setIssueOpen(true)}>
-          <Icon name="key" size={12} />
-          {t('settings.tokens.issue')}
-        </Button>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <Button size="sm" onClick={() => setPairOpen(true)}>
+            <Icon name="plus" size={12} />
+            {t('settings.appPairing.issue')}
+          </Button>
+          <Button size="sm" variant="primary" onClick={() => setIssueOpen(true)}>
+            <Icon name="key" size={12} />
+            {t('settings.tokens.issue')}
+          </Button>
+        </div>
       }
       flush
     >
       <TokenIssueModal open={issueOpen} onClose={() => setIssueOpen(false)} />
+      <AppPairingModal open={pairOpen} onClose={() => setPairOpen(false)} />
       <QueryBoundary
         isLoading={query.isLoading}
         error={query.error}

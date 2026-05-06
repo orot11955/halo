@@ -29,8 +29,8 @@ struct RootView: View {
                 }
             }
             .sheet(isPresented: $showingAddCore) {
-                AddCoreView { name, url in
-                    model.saveProfile(name: name, baseURL: url)
+                AddCoreView { name, url, pairingCode in
+                    model.saveProfile(name: name, baseURL: url, pairingCode: pairingCode)
                     showingAddCore = false
                 }
             }

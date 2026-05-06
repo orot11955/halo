@@ -177,6 +177,22 @@ CREATE INDEX IF NOT EXISTS idx_app_tokens_user ON app_tokens(user_id);
 CREATE INDEX IF NOT EXISTS idx_app_tokens_device ON app_tokens(device_id);
 CREATE INDEX IF NOT EXISTS idx_app_tokens_hash ON app_tokens(token_hash);
 
+CREATE TABLE IF NOT EXISTS app_pairing_codes (
+  id TEXT PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES auth_users(id) ON DELETE CASCADE,
+  code_hash TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL DEFAULT '',
+  scopes_json TEXT NOT NULL DEFAULT '[]',
+  created_at TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  consumed_at TEXT,
+  revoked_at TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_app_pairing_codes_user ON app_pairing_codes(user_id);
+CREATE INDEX IF NOT EXISTS idx_app_pairing_codes_hash ON app_pairing_codes(code_hash);
+CREATE INDEX IF NOT EXISTS idx_app_pairing_codes_expires ON app_pairing_codes(expires_at);
+
 CREATE TABLE IF NOT EXISTS notes (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   scope TEXT NOT NULL,

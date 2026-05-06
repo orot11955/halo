@@ -10,6 +10,7 @@ import (
 )
 
 const TokenPrefix = "halo_app_"
+const PairingCodePrefix = "halo_pair_"
 
 func GenerateToken() (string, error) {
 	random := make([]byte, 32)
@@ -34,4 +35,12 @@ func GenerateID() (string, error) {
 		return "", fmt.Errorf("generate app token id: %w", err)
 	}
 	return base64.RawURLEncoding.EncodeToString(random), nil
+}
+
+func GeneratePairingCode() (string, error) {
+	random := make([]byte, 24)
+	if _, err := rand.Read(random); err != nil {
+		return "", fmt.Errorf("generate app pairing code: %w", err)
+	}
+	return PairingCodePrefix + base64.RawURLEncoding.EncodeToString(random), nil
 }

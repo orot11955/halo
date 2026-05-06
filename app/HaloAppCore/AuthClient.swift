@@ -107,6 +107,45 @@ public final class AuthClient {
         )
     }
 
+    public func completePairing(
+        baseURL: URL,
+        code: String,
+        deviceID: String? = nil,
+        deviceName: String = AuthClient.defaultDeviceName(),
+        platform: String = AuthClient.defaultPlatform,
+        bundleID: String = Bundle.main.bundleIdentifier ?? "dev.halo.app"
+    ) async throws -> SessionToken {
+        var payload: [String: Any] = [
+            "code": code,
+            "device_name": deviceName,
+            "platform": platform,
+            "bundle_id": bundleID,
+            "token_name": deviceName,
+        ]
+        if let deviceID, !deviceID.isEmpty {
+            payload["device_id"] = deviceID
+        }
+        var request = URLRequest(url: baseURL.haloAPIPath("/mobile/pair/complete"))
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: payload)
+        let (data, response) = try await session.data(for: request)
+        try Self.requireOK(response)
+        let device = try HaloJSON.decoder.decode(MobileDeviceRegistrationResponse.self, from: data)
+        guard let appToken = device.appToken else {
+            throw AuthClientError.missingAppToken
+        }
+        let user = try await me(baseURL: baseURL, token: appToken)
+        return SessionToken(
+            token: appToken,
+            username: user.username,
+            kind: .app,
+            deviceID: device.id,
+            tokenID: device.appTokenID,
+            scopes: device.appScopes ?? []
+        )
+    }
+
     public func me(baseURL: URL, token: String? = nil) async throws -> AuthUser {
         var request = URLRequest(url: baseURL.haloAPIPath("/auth/me"))
         if let token {

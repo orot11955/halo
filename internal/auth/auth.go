@@ -10,6 +10,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"strings"
@@ -178,6 +179,37 @@ func FromContext(ctx context.Context) (SessionInfo, bool) {
 
 func withSession(ctx context.Context, info SessionInfo) context.Context {
 	return context.WithValue(ctx, sessionContextKey, info)
+}
+
+func RequireScope(scope string, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		info, ok := FromContext(r.Context())
+		if !ok {
+			writeUnauthorized(w, "not authenticated")
+			return
+		}
+		if info.Kind != SubjectApp || info.HasScope(scope) {
+			next.ServeHTTP(w, r)
+			return
+		}
+		httputil.WriteError(w, http.StatusForbidden, "app token is missing required scope: "+scope)
+	})
+}
+
+func (info SessionInfo) HasScope(scope string) bool {
+	if info.Kind != SubjectApp {
+		return true
+	}
+	var scopes []string
+	if err := json.Unmarshal([]byte(info.AppToken.ScopesJSON), &scopes); err != nil {
+		return false
+	}
+	for _, candidate := range scopes {
+		if candidate == scope {
+			return true
+		}
+	}
+	return false
 }
 
 // Middleware enforces a valid session on every request that reaches the

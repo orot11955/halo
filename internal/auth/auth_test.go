@@ -177,3 +177,46 @@ func TestMiddlewareAcceptsAppToken(t *testing.T) {
 		t.Fatal("expected last_used_at")
 	}
 }
+
+func TestRequireScopeRejectsAppTokenMissingScope(t *testing.T) {
+	store := openStore(t)
+	svc := NewService(store)
+	ctx := context.Background()
+
+	user, err := store.UpsertAuthUser(ctx, "admin", "hash")
+	if err != nil {
+		t.Fatalf("upsert user: %v", err)
+	}
+	if _, err := store.UpsertMobileDevice(ctx, storage.UpsertMobileDeviceParams{
+		ID:       "dev-1",
+		UserID:   user.ID,
+		Platform: "ios",
+		Enabled:  true,
+	}); err != nil {
+		t.Fatalf("upsert device: %v", err)
+	}
+	rawToken, err := appauth.GenerateToken()
+	if err != nil {
+		t.Fatalf("generate token: %v", err)
+	}
+	if _, err := store.CreateAppToken(ctx, storage.CreateAppTokenParams{
+		ID:         "tok-1",
+		UserID:     user.ID,
+		DeviceID:   "dev-1",
+		TokenHash:  appauth.HashToken(rawToken),
+		ScopesJSON: `["push:register"]`,
+	}); err != nil {
+		t.Fatalf("create app token: %v", err)
+	}
+
+	protected := svc.Middleware(RequireScope("core:api", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("inner handler should not run")
+	})))
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/", nil)
+	req.Header.Set("Authorization", "Bearer "+rawToken)
+	protected.ServeHTTP(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}

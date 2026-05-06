@@ -1,11 +1,12 @@
 import SwiftUI
 
 struct AddCoreView: View {
-    var onSave: (String, URL) -> Void
+    var onSave: (String, URL, String) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @State private var name = "Home Core"
     @State private var urlText = ProcessInfo.processInfo.environment["HALO_APP_CORE_URL"] ?? "http://127.0.0.1:17310"
+    @State private var pairingCode = ""
 
     var body: some View {
         NavigationStack {
@@ -15,6 +16,10 @@ struct AddCoreView: View {
                     #if os(iOS)
                     .textInputAutocapitalization(.never)
                     .keyboardType(.URL)
+                    #endif
+                TextField("Pairing Code", text: $pairingCode)
+                    #if os(iOS)
+                    .textInputAutocapitalization(.never)
                     #endif
             }
             .navigationTitle("Add Core")
@@ -27,7 +32,7 @@ struct AddCoreView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
                         if let url = URL(string: urlText), !name.isEmpty {
-                            onSave(name, url)
+                            onSave(name, url, pairingCode)
                         }
                     }
                     .disabled(URL(string: urlText) == nil || name.isEmpty)

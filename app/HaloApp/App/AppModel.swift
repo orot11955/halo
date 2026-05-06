@@ -76,11 +76,15 @@ final class AppModel: ObservableObject {
         return CoreProfile(name: name, baseURL: url)
     }
 
-    func saveProfile(name: String, baseURL: URL) {
+    func saveProfile(name: String, baseURL: URL, pairingCode: String = "") {
         let profile = CoreProfile(name: name, baseURL: baseURL)
         profiles.append(profile)
         persistProfiles()
         select(profile)
+        let code = pairingCode.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !code.isEmpty {
+            Task { await completePairing(code: code) }
+        }
     }
 
     func select(_ profile: CoreProfile) {
@@ -116,6 +120,23 @@ final class AppModel: ObservableObject {
                 baseURL: profile.baseURL,
                 username: username,
                 password: password
+            )
+            try sessionStore.save(session, origin: profile.baseURL.haloOrigin)
+            selectedSession = session
+            errorMessage = nil
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func completePairing(code: String) async {
+        guard let profile = selectedProfile else {
+            return
+        }
+        do {
+            let session = try await authClient.completePairing(
+                baseURL: profile.baseURL,
+                code: code.trimmingCharacters(in: .whitespacesAndNewlines)
             )
             try sessionStore.save(session, origin: profile.baseURL.haloOrigin)
             selectedSession = session
