@@ -1,0 +1,66 @@
+import type { HaloEvent } from '@/types/event';
+
+const minutesAgo = (m: number) => new Date(Date.now() - m * 60_000).toISOString();
+
+export const mockEvents: HaloEvent[] = [
+  {
+    id: 'evt-1',
+    kind: 'node.offline',
+    severity: 'critical',
+    source: 'pioneer',
+    subject: 'pioneer',
+    message: 'Node has not sent a heartbeat for 30 minutes.',
+    resolved: false,
+    occurred_at: minutesAgo(30),
+  },
+  {
+    id: 'evt-2',
+    kind: 'ssl.expiry.warning',
+    severity: 'warning',
+    source: 'kit.2juho.com',
+    subject: 'kit.2juho.com',
+    message: 'SSL certificate expires in 11 days.',
+    resolved: false,
+    occurred_at: minutesAgo(48),
+  },
+  {
+    id: 'evt-3',
+    kind: 'service.warning',
+    severity: 'warning',
+    source: 'voyager',
+    subject: 'npm.2juho.com',
+    message: 'Service response time exceeded 1s threshold.',
+    resolved: false,
+    occurred_at: minutesAgo(74),
+  },
+  {
+    id: 'evt-4',
+    kind: 'disk.warning',
+    severity: 'warning',
+    source: 'kepler',
+    subject: 'kepler:/data',
+    message: 'Disk usage on /data reached 74%.',
+    resolved: false,
+    occurred_at: minutesAgo(180),
+  },
+  {
+    id: 'evt-5',
+    kind: 'node.online',
+    severity: 'info',
+    source: 'orbit',
+    subject: 'orbit',
+    message: 'Node back online after restart.',
+    resolved: true,
+    occurred_at: minutesAgo(420),
+  },
+  {
+    id: 'evt-6',
+    kind: 'alert.resolved',
+    severity: 'info',
+    source: 'voyager',
+    subject: 'voyager:cpu',
+    message: 'CPU saturation alert resolved.',
+    resolved: true,
+    occurred_at: minutesAgo(800),
+  },
+];

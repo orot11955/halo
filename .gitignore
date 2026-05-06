@@ -1,0 +1,53 @@
+# Runtime state
+.halo/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.pid
+*.log
+
+# Build and release output
+dist/
+coverage/
+*.out
+
+# Go
+bin/
+
+# Web
+web/node_modules/
+web/dist/
+web/.vite/
+web/.tsbuild*/
+web/*.tsbuildinfo
+web/npm-debug.log*
+web/yarn-debug.log*
+web/yarn-error.log*
+
+# Swift/Xcode
+app/.build/
+app/DerivedData/
+app/build/
+app/*.xcarchive
+*.xcuserstate
+xcuserdata/
+DerivedData/
+
+# Local configuration and secrets
+.env
+.env.*
+*.env
+!*.env.example
+deploy/*.local
+deploy/*.secret
+
+# Editor/OS noise
+.DS_Store
+._*
+Thumbs.db
+.idea/
+.vscode/
+*.swp

@@ -1,0 +1,25 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-4) var(--space-6);
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.label {
+  font-size: var(--text-xs);
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+}
+
+.value {
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  word-break: break-word;
+  font-variant-numeric: tabular-nums;
+}

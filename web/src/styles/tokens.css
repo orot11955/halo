@@ -1,0 +1,88 @@
+:root {
+  color-scheme: dark;
+
+  /* Surfaces — warmer, less saturated slate.
+     Previous tone was a cool blue-black; this set leans neutral with a hint
+     of warmth and slightly more contrast between layers. */
+  --color-bg: #0e1014;
+  --color-bg-elevated: #14171d;
+  --color-bg-hover: #1a1e26;
+  --color-surface: #181c24;
+  --color-surface-2: #1f242e;
+  --color-border: #262c38;
+  --color-border-strong: #333b4a;
+
+  /* Text */
+  --color-text: #ebeef3;
+  --color-text-muted: #a4adbc;
+  --color-text-subtle: #6e7787;
+  --color-text-on-accent: #06120f;
+
+  /* Accent — teal/mint instead of cool blue.
+     This shifts the overall personality toward a calm "ops console"
+     instead of a "dashboard SaaS" tone. */
+  --color-accent: #2fd4b5;
+  --color-accent-hover: #5be3c8;
+  --color-accent-soft: rgba(47, 212, 181, 0.12);
+  --color-accent-strong: rgba(47, 212, 181, 0.22);
+
+  /* Secondary accent for charts/highlights only */
+  --color-accent-2: #8ab4ff;
+
+  /* Status palette — kept distinguishable but slightly desaturated
+     so it sits comfortably alongside the teal primary. */
+  --color-success: #4ade80;
+  --color-success-soft: rgba(74, 222, 128, 0.12);
+  --color-warning: #f5b544;
+  --color-warning-soft: rgba(245, 181, 68, 0.14);
+  --color-danger: #f97373;
+  --color-danger-soft: rgba(249, 115, 115, 0.14);
+  --color-info: #5fbedc;
+  --color-info-soft: rgba(95, 190, 220, 0.12);
+  --color-neutral: #8a93a4;
+  --color-neutral-soft: rgba(138, 147, 164, 0.14);
+
+  /* Geometry — slightly softer corners, generous spacing to give
+     a roomier "console" feel. */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+
+  --font-sans:
+    'Inter', 'Pretendard Variable', 'Pretendard', system-ui, -apple-system,
+    'Segoe UI', Roboto, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  --font-mono:
+    'JetBrains Mono', 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo,
+    Consolas, monospace;
+
+  /* Slightly larger base type — the previous 13px felt cramped. */
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-base: 14px;
+  --text-md: 14px;
+  --text-lg: 16px;
+  --text-xl: 20px;
+  --text-2xl: 26px;
+  --text-3xl: 32px;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 6px 24px rgba(0, 0, 0, 0.34);
+
+  --sidebar-width: 240px;
+  --header-height: 56px;
+  --transition: 140ms ease;
+
+  /* Brand gradient — used for the brand mark and a few accent affordances. */
+  --gradient-brand: linear-gradient(135deg, #2fd4b5 0%, #4f9bff 100%);
+}

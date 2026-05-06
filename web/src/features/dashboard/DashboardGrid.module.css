@@ -1,0 +1,162 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.span1 { grid-column: span 1; }
+.span2 { grid-column: span 2; }
+.span3 { grid-column: span 3; }
+.span4 { grid-column: span 3; }
+
+@media (max-width: 980px) {
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .span2, .span3, .span4 { grid-column: span 2; }
+}
+
+@media (max-width: 640px) {
+  .grid { grid-template-columns: 1fr; }
+  .span1, .span2, .span3, .span4 { grid-column: span 1; }
+}
+
+.cell {
+  position: relative;
+  min-width: 0;
+  /* The grid stretches each cell to the tallest in the row; we then make
+     the Card inside fill that cell so neighbours line up at the bottom. */
+  display: flex;
+  flex-direction: column;
+}
+
+.cell > * {
+  flex: 1;
+  min-height: 0;
+}
+
+.handle {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+  display: none;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  user-select: none;
+}
+
+.dragHandleBtn {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: grab;
+  touch-action: none;
+}
+
+.dragHandleBtn:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text);
+}
+
+.dragHandleBtn:active {
+  cursor: grabbing;
+}
+
+.cell.editing .handle {
+  display: inline-flex;
+}
+
+.cell.editing {
+  outline: 2px dashed var(--color-border-strong);
+  outline-offset: -2px;
+  border-radius: var(--radius-md);
+}
+
+.cell.dragging {
+  opacity: 0.4;
+}
+
+.cell.dropTarget {
+  outline-color: var(--color-accent);
+}
+
+.handle:active {
+  cursor: grabbing;
+}
+
+.spanControl {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 4px;
+  padding-left: 6px;
+  border-left: 1px solid var(--color-border);
+}
+
+.spanBtn {
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--color-text-subtle);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.spanBtn:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text);
+}
+
+.spanBtn.active {
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+.hideBtn {
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--color-text-subtle);
+  cursor: pointer;
+}
+
+.hideBtn:hover {
+  color: var(--color-danger);
+  background: var(--color-bg-hover);
+}
+
+.hidden {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3);
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.hiddenLabel {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
