@@ -1,6 +1,7 @@
 import Foundation
+
 #if canImport(FoundationNetworking)
-import FoundationNetworking
+    import FoundationNetworking
 #endif
 
 public struct AuthUser: Codable, Equatable, Sendable {
@@ -50,20 +51,26 @@ public final class AuthClient {
         self.session = session
     }
 
-    public func login(baseURL: URL, username: String, password: String) async throws -> SessionToken {
+    public func login(baseURL: URL, username: String, password: String) async throws -> SessionToken
+    {
         var request = URLRequest(url: baseURL.haloAPIPath("/auth/login"))
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONEncoder().encode(["username": username, "password": password])
+
         let (data, response) = try await session.data(for: request)
         try Self.requireOK(response)
+
         let login = try HaloJSON.decoder.decode(LoginResponse.self, from: data)
+
         let appSession = try await registerAppDevice(
             baseURL: baseURL,
             userSessionToken: login.token,
             username: login.user.username
         )
+
         try? await logout(baseURL: baseURL, token: login.token)
+
         return appSession
     }
 
@@ -72,31 +79,40 @@ public final class AuthClient {
         userSessionToken: String,
         username: String,
         deviceID: String? = nil,
-        deviceName: String = AuthClient.defaultDeviceName(),
-        platform: String = AuthClient.defaultPlatform,
+        deviceName: String? = nil,
+        platform: String? = nil,
         bundleID: String = Bundle.main.bundleIdentifier ?? "dev.halo.app"
     ) async throws -> SessionToken {
+        let resolvedDeviceName = deviceName ?? Self.defaultDeviceName()
+        let resolvedPlatform = platform ?? Self.defaultPlatform
+
         var payload: [String: Any] = [
-            "device_name": deviceName,
-            "platform": platform,
+            "device_name": resolvedDeviceName,
+            "platform": resolvedPlatform,
             "bundle_id": bundleID,
             "issue_app_token": true,
-            "token_name": deviceName,
+            "token_name": resolvedDeviceName,
         ]
+
         if let deviceID, !deviceID.isEmpty {
             payload["device_id"] = deviceID
         }
+
         var request = URLRequest(url: baseURL.haloAPIPath("/mobile/devices"))
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(userSessionToken)", forHTTPHeaderField: "Authorization")
         request.httpBody = try JSONSerialization.data(withJSONObject: payload)
+
         let (data, response) = try await session.data(for: request)
         try Self.requireOK(response)
+
         let device = try HaloJSON.decoder.decode(MobileDeviceRegistrationResponse.self, from: data)
+
         guard let appToken = device.appToken else {
             throw AuthClientError.missingAppToken
         }
+
         return SessionToken(
             token: appToken,
             username: username,
@@ -111,31 +127,41 @@ public final class AuthClient {
         baseURL: URL,
         code: String,
         deviceID: String? = nil,
-        deviceName: String = AuthClient.defaultDeviceName(),
-        platform: String = AuthClient.defaultPlatform,
+        deviceName: String? = nil,
+        platform: String? = nil,
         bundleID: String = Bundle.main.bundleIdentifier ?? "dev.halo.app"
     ) async throws -> SessionToken {
+        let resolvedDeviceName = deviceName ?? Self.defaultDeviceName()
+        let resolvedPlatform = platform ?? Self.defaultPlatform
+
         var payload: [String: Any] = [
             "code": code,
-            "device_name": deviceName,
-            "platform": platform,
+            "device_name": resolvedDeviceName,
+            "platform": resolvedPlatform,
             "bundle_id": bundleID,
-            "token_name": deviceName,
+            "token_name": resolvedDeviceName,
         ]
+
         if let deviceID, !deviceID.isEmpty {
             payload["device_id"] = deviceID
         }
+
         var request = URLRequest(url: baseURL.haloAPIPath("/mobile/pair/complete"))
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONSerialization.data(withJSONObject: payload)
+
         let (data, response) = try await session.data(for: request)
         try Self.requireOK(response)
+
         let device = try HaloJSON.decoder.decode(MobileDeviceRegistrationResponse.self, from: data)
+
         guard let appToken = device.appToken else {
             throw AuthClientError.missingAppToken
         }
+
         let user = try await me(baseURL: baseURL, token: appToken)
+
         return SessionToken(
             token: appToken,
             username: user.username,
@@ -148,11 +174,14 @@ public final class AuthClient {
 
     public func me(baseURL: URL, token: String? = nil) async throws -> AuthUser {
         var request = URLRequest(url: baseURL.haloAPIPath("/auth/me"))
+
         if let token {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
+
         let (data, response) = try await session.data(for: request)
         try Self.requireOK(response)
+
         return try JSONDecoder().decode(AuthUser.self, from: data)
     }
 
@@ -160,6 +189,7 @@ public final class AuthClient {
         var request = URLRequest(url: baseURL.haloAPIPath("/auth/logout"))
         request.httpMethod = "POST"
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
         let (_, response) = try await session.data(for: request)
         try Self.requireOK(response, accepted: [200, 204])
     }
@@ -168,6 +198,7 @@ public final class AuthClient {
         guard let http = response as? HTTPURLResponse else {
             throw CoreHealthError.invalidResponse
         }
+
         guard accepted.contains(http.statusCode) else {
             throw CoreHealthError.httpStatus(http.statusCode)
         }
@@ -175,9 +206,9 @@ public final class AuthClient {
 
     private static var defaultPlatform: String {
         #if os(iOS)
-        return "ios"
+            return "ios"
         #else
-        return "macos"
+            return "macos"
         #endif
     }
 
